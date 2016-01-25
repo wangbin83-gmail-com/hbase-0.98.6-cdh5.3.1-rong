@@ -107,6 +107,8 @@ public class ZooKeeperWatcher implements Watcher, Abortable, Closeable {
   public String tableLockZNode;
   // znode containing the state of recovering regions
   public String recoveringRegionsZNode;
+  // znode containing hbase thrift
+  public String thriftServerZNode;
   // znode containing namespace descriptors
   public static String namespaceZNode = "namespace";
 
@@ -179,6 +181,7 @@ public class ZooKeeperWatcher implements Watcher, Abortable, Closeable {
       ZKUtil.createAndFailSilent(this, splitLogZNode);
       ZKUtil.createAndFailSilent(this, backupMasterAddressesZNode);
       ZKUtil.createAndFailSilent(this, tableLockZNode);
+      ZKUtil.createAndFailSilent(this, thriftServerZNode);
       ZKUtil.createAndFailSilent(this, recoveringRegionsZNode);
     } catch (KeeperException e) {
       throw new ZooKeeperConnectionException(
@@ -231,6 +234,8 @@ public class ZooKeeperWatcher implements Watcher, Abortable, Closeable {
         conf.get("zookeeper.znode.balancer", "balancer"));
     tableLockZNode = ZKUtil.joinZNode(baseZNode,
         conf.get("zookeeper.znode.tableLock", "table-lock"));
+    thriftServerZNode = ZKUtil.joinZNode(baseZNode,
+            conf.get("zookeeper.znode.thriftServer", "thrift-servers"));
     recoveringRegionsZNode = ZKUtil.joinZNode(baseZNode,
         conf.get("zookeeper.znode.recovering.regions", "recovering-regions"));
     namespaceZNode = ZKUtil.joinZNode(baseZNode,

@@ -18,8 +18,11 @@
 
 package org.apache.hadoop.hbase.thrift;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -31,9 +34,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.thrift.ThriftServerRunner.ImplType;
 import org.apache.hadoop.hbase.util.InfoServer;
 import org.apache.hadoop.hbase.util.VersionInfo;
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
+import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 
 /**
@@ -57,6 +63,8 @@ public class ThriftServer {
 
   private static final String DEFAULT_BIND_ADDR = "0.0.0.0";
   private static final int DEFAULT_LISTEN_PORT = 9090;
+  
+  private ZooKeeperWatcher zooKeeper;
 
   private Configuration conf;
   ThriftServerRunner serverRunner;
@@ -67,8 +75,14 @@ public class ThriftServer {
   // Main program and support routines
   //
 
-  public ThriftServer(Configuration conf) {
+  public ThriftServer(Configuration conf) throws ZooKeeperConnectionException, IOException {
     this.conf = HBaseConfiguration.create(conf);
+    String uuid = UUID.randomUUID().toString(); 
+    ZKUtil.loginClient(this.conf, "hbase.thrift.keytab.file",
+    	      "hbase.thrift.kerberos.principal",
+    	      InetAddress.getLocalHost().getHostName());
+    LOG.info("login success for zookeeper client " + InetAddress.getLocalHost().getHostName());
+    this.zooKeeper = new ZooKeeperWatcher(conf, uuid, null, true);
   }
 
   private static void printUsageAndExit(Options options, int exitCode)
@@ -89,6 +103,16 @@ public class ThriftServer {
    void doMain(final String[] args) throws Exception {
      processOptions(args);
 
+     String hostname = InetAddress.getLocalHost().getHostName();
+     int thrift_port = conf.getInt(ThriftServerRunner.PORT_CONF_KEY, 
+    		                       DEFAULT_LISTEN_PORT);
+     String zk_key = hostname + ":"+ thrift_port;
+
+     String znode = ZKUtil.joinZNode(this.zooKeeper.thriftServerZNode, zk_key);
+     ZKUtil.createEphemeralNodeAndWatch(this.zooKeeper, znode, zk_key.getBytes("UTF-8"));
+     
+     LOG.info("create ephemeral node " + znode);
+     
      serverRunner = new ThriftServerRunner(conf);
 
      // Put up info server.
