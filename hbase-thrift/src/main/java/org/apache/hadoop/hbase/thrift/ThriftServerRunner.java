@@ -165,6 +165,8 @@ public class ThriftServerRunner implements Runnable {
   private final String qop;
   private String host;
 
+  private final ThriftServer ui_server;
+
   /** An enum of server implementation selections */
   enum ImplType {
     HS_HA("hsha", true, THsHaServer.class, true),
@@ -263,7 +265,8 @@ public class ThriftServerRunner implements Runnable {
 
   }
 
-  public ThriftServerRunner(Configuration conf) throws IOException {
+  public ThriftServerRunner(Configuration conf, ThriftServer ui_server) throws IOException {
+	this.ui_server = ui_server;
     UserProvider userProvider = UserProvider.instantiate(conf);
     // login the server principal (if using secure Hadoop)
     boolean securityEnabled = userProvider.isHadoopSecurityEnabled()
@@ -490,6 +493,7 @@ public class ThriftServerRunner implements Runnable {
 
 
     registerFilters(conf);
+	this.ui_server.register_zk();
   }
 
   ExecutorService createExecutor(BlockingQueue<Runnable> callQueue,

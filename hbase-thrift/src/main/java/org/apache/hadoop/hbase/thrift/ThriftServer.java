@@ -19,7 +19,9 @@
 package org.apache.hadoop.hbase.thrift;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +36,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.thrift.ThriftServerRunner.ImplType;
 import org.apache.hadoop.hbase.util.InfoServer;
@@ -41,6 +44,7 @@ import org.apache.hadoop.hbase.util.VersionInfo;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher;
 import org.apache.hadoop.util.Shell.ExitCodeException;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * ThriftServer- this class starts up a Thrift server which implements the
@@ -77,12 +81,13 @@ public class ThriftServer {
 
   public ThriftServer(Configuration conf) throws ZooKeeperConnectionException, IOException {
     this.conf = HBaseConfiguration.create(conf);
-    String uuid = UUID.randomUUID().toString(); 
+    conf.setInt(HConstants.ZK_SESSION_TIMEOUT, 30 * 1000);
+    String hostname = InetAddress.getLocalHost().getHostName();
     ZKUtil.loginClient(this.conf, "hbase.thrift.keytab.file",
     	      "hbase.thrift.kerberos.principal",
-    	      InetAddress.getLocalHost().getHostName());
+    	      hostname);
     LOG.info("login success for zookeeper client " + InetAddress.getLocalHost().getHostName());
-    this.zooKeeper = new ZooKeeperWatcher(conf, uuid, null, true);
+    this.zooKeeper = new ZooKeeperWatcher(conf, hostname, null, true);
   }
 
   private static void printUsageAndExit(Options options, int exitCode)
@@ -95,6 +100,19 @@ public class ThriftServer {
         true);
     throw new ExitCodeException(exitCode, "");
   }
+  
+  public void register_zk() throws UnknownHostException, UnsupportedEncodingException, KeeperException {
+     String hostname = InetAddress.getLocalHost().getHostName();
+     int thrift_port = conf.getInt(ThriftServerRunner.PORT_CONF_KEY, 
+    		                       DEFAULT_LISTEN_PORT);
+     String zk_key = hostname + ":"+ thrift_port;
+
+     String znode = ZKUtil.joinZNode(this.zooKeeper.thriftServerZNode, zk_key);
+     ZKUtil.deleteNodeFailSilent(this.zooKeeper, znode);
+     ZKUtil.createEphemeralNodeAndWatch(this.zooKeeper, znode, zk_key.getBytes("UTF-8"));
+     
+     LOG.info("create ephemeral node " + znode);
+  }
 
   /**
    * Start up or shuts down the Thrift server, depending on the arguments.
@@ -102,19 +120,8 @@ public class ThriftServer {
    */
    void doMain(final String[] args) throws Exception {
      processOptions(args);
-
-     String hostname = InetAddress.getLocalHost().getHostName();
-     int thrift_port = conf.getInt(ThriftServerRunner.PORT_CONF_KEY, 
-    		                       DEFAULT_LISTEN_PORT);
-     String zk_key = hostname + ":"+ thrift_port;
-
-     String znode = ZKUtil.joinZNode(this.zooKeeper.thriftServerZNode, zk_key);
-     ZKUtil.createEphemeralNodeAndWatch(this.zooKeeper, znode, zk_key.getBytes("UTF-8"));
      
-     LOG.info("create ephemeral node " + znode);
-     
-     serverRunner = new ThriftServerRunner(conf);
-
+     serverRunner = new ThriftServerRunner(conf, this);
      // Put up info server.
      int port = conf.getInt("hbase.thrift.info.port", 9095);
      if (port >= 0) {
