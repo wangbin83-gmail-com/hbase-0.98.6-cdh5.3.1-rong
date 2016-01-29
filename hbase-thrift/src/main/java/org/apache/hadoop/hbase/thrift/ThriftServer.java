@@ -81,7 +81,6 @@ public class ThriftServer {
 
   public ThriftServer(Configuration conf) throws ZooKeeperConnectionException, IOException {
     this.conf = HBaseConfiguration.create(conf);
-    conf.setInt(HConstants.ZK_SESSION_TIMEOUT, 30 * 1000);
     String hostname = InetAddress.getLocalHost().getHostName();
     ZKUtil.loginClient(this.conf, "hbase.thrift.keytab.file",
     	      "hbase.thrift.kerberos.principal",
