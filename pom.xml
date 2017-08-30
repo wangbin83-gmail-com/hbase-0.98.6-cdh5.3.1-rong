@@ -966,10 +966,10 @@
       yyyy-MM-dd'T'HH:mm
     </maven.build.timestamp.format>
     <buildDate>${maven.build.timestamp}</buildDate>
-    <compileSource>1.6</compileSource>
+    <compileSource>1.8</compileSource>
     <!-- Dependencies -->
-    <javaVersion>1.7</javaVersion>
-    <targetJavaVersion>1.6</targetJavaVersion>
+    <javaVersion>1.8</javaVersion>
+    <targetJavaVersion>1.8</targetJavaVersion>
     <sourceJavaVersion>${targetJavaVersion}</sourceJavaVersion>
     <hadoop-two.version>${cdh.hadoop.version}</hadoop-two.version>
 	<!-- CLOUDERA-SPECIFIC-NOTE: This is Cloudera specific build param, and is used for building

@@ -667,12 +667,6 @@ public class ThriftServerRunner implements Runnable {
 
     @Override
     public void disableTable(ByteBuffer tableName) throws IOError{
-      try{
-        getHBaseAdmin().disableTable(getBytes(tableName));
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
     }
 
     @Override
@@ -687,27 +681,10 @@ public class ThriftServerRunner implements Runnable {
 
     @Override
     public void compact(ByteBuffer tableNameOrRegionName) throws IOError {
-      try{
-        getHBaseAdmin().compact(getBytes(tableNameOrRegionName));
-      } catch (InterruptedException e) {
-        throw new IOError(e.getMessage());
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
     }
 
     @Override
     public void majorCompact(ByteBuffer tableNameOrRegionName) throws IOError {
-      try{
-        getHBaseAdmin().majorCompact(getBytes(tableNameOrRegionName));
-      } catch (InterruptedException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
     }
 
     @Override
@@ -1025,8 +1002,7 @@ public class ThriftServerRunner implements Runnable {
         ByteBuffer tableName, ByteBuffer row, ByteBuffer column,
         Map<ByteBuffer, ByteBuffer> attributes)
         throws IOError {
-      deleteAllTs(tableName, row, column, HConstants.LATEST_TIMESTAMP,
-                  attributes);
+        throw new IOError("delete in rong360 hbase is forbided !");
     }
 
     @Override
@@ -1034,85 +1010,31 @@ public class ThriftServerRunner implements Runnable {
                             ByteBuffer row,
                             ByteBuffer column,
         long timestamp, Map<ByteBuffer, ByteBuffer> attributes) throws IOError {
-      try {
-        HTable table = getTable(tableName);
-        Delete delete  = new Delete(getBytes(row));
-        addAttributes(delete, attributes);
-        byte [][] famAndQf = KeyValue.parseColumn(getBytes(column));
-        if (famAndQf.length == 1) {
-          delete.deleteFamily(famAndQf[0], timestamp);
-        } else {
-          delete.deleteColumns(famAndQf[0], famAndQf[1], timestamp);
-        }
-        table.delete(delete);
-
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
+        throw new IOError("delete in rong360 hbase is forbided !");
     }
 
     @Override
     public void deleteAllRow(
         ByteBuffer tableName, ByteBuffer row,
         Map<ByteBuffer, ByteBuffer> attributes) throws IOError {
-      deleteAllRowTs(tableName, row, HConstants.LATEST_TIMESTAMP, attributes);
+        throw new IOError("delete in rong360 hbase is forbided !");
     }
 
     @Override
     public void deleteAllRowTs(
         ByteBuffer tableName, ByteBuffer row, long timestamp,
         Map<ByteBuffer, ByteBuffer> attributes) throws IOError {
-      try {
-        HTable table = getTable(tableName);
-        Delete delete  = new Delete(getBytes(row), timestamp);
-        addAttributes(delete, attributes);
-        table.delete(delete);
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
+        throw new IOError("delete in rong360 hbase is forbided !");
     }
 
     @Override
     public void createTable(ByteBuffer in_tableName,
         List<ColumnDescriptor> columnFamilies) throws IOError,
         IllegalArgument, AlreadyExists {
-      byte [] tableName = getBytes(in_tableName);
-      try {
-        if (getHBaseAdmin().tableExists(tableName)) {
-          throw new AlreadyExists("table name already in use");
-        }
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(tableName));
-        for (ColumnDescriptor col : columnFamilies) {
-          HColumnDescriptor colDesc = ThriftUtilities.colDescFromThrift(col);
-          desc.addFamily(colDesc);
-        }
-        getHBaseAdmin().createTable(desc);
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      } catch (IllegalArgumentException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IllegalArgument(e.getMessage());
-      }
     }
 
     @Override
     public void deleteTable(ByteBuffer in_tableName) throws IOError {
-      byte [] tableName = getBytes(in_tableName);
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("deleteTable: table=" + Bytes.toString(tableName));
-      }
-      try {
-        if (!getHBaseAdmin().tableExists(tableName)) {
-          throw new IOException("table does not exist");
-        }
-        getHBaseAdmin().deleteTable(tableName);
-      } catch (IOException e) {
-        LOG.warn(e.getMessage(), e);
-        throw new IOError(e.getMessage());
-      }
     }
 
     @Override
