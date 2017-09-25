@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.StripeCompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.StripeCompactor;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
 
 import com.google.common.base.Preconditions;
 
@@ -97,9 +98,10 @@ public class StripeStoreEngine extends StoreEngine<StripeStoreFlusher,
     }
 
     @Override
-    public List<Path> compact() throws IOException {
+    public List<Path> compact(CompactionThroughputController throughputController)
+        throws IOException {
       Preconditions.checkArgument(this.stripeRequest != null, "Cannot compact without selection");
-      return this.stripeRequest.execute(compactor);
+      return this.stripeRequest.execute(compactor, throughputController);
     }
   }
 }

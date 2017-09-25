@@ -579,4 +579,9 @@ ClientProtos.ClientService.BlockingInterface, RegionServerServices {
   public ServerNonceManager getNonceManager() {
     return null;
   }
+
+  @Override
+  public double getCompactionPressure() {
+    return 0;
+  }
 }

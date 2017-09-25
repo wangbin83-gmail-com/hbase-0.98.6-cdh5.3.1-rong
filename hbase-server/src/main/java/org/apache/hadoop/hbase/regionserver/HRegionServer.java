@@ -4833,4 +4833,18 @@ public class HRegionServer implements ClientProtos.ClientService.BlockingInterfa
   public CacheConfig getCacheConfig() {
     return this.cacheConfig;
   }
+
+  @Override
+  public double getCompactionPressure() {
+    double max = 0;
+    for (HRegion region : onlineRegions.values()) {
+      for (Store store : region.getStores().values()) {
+        double normCount = store.getCompactionPressure();
+        if (normCount > max) {
+          max = normCount;
+        }
+      }
+    }
+    return max;
+  }
 }

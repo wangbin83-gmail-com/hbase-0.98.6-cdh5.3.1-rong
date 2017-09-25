@@ -246,4 +246,9 @@ class MockRegionServerServices implements RegionServerServices {
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public double getCompactionPressure() {
+    return 0;
+  }
 }

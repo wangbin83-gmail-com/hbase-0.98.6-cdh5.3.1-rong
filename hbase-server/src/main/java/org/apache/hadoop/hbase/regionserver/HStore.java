@@ -77,6 +77,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
 import org.apache.hadoop.hbase.regionserver.compactions.OffPeakHours;
 import org.apache.hadoop.hbase.regionserver.wal.HLogUtil;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
 import org.apache.hadoop.hbase.security.EncryptionUtil;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -85,6 +86,7 @@ import org.apache.hadoop.hbase.util.ClassSize;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
 import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.util.StringUtils.TraditionalBinaryPrefix;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -881,7 +883,7 @@ public class HStore implements Store {
     if (LOG.isInfoEnabled()) {
       LOG.info("Added " + sf + ", entries=" + r.getEntries() +
         ", sequenceid=" + logCacheFlushId +
-        ", filesize=" + StringUtils.humanReadableInt(r.length()));
+        ", filesize=" + TraditionalBinaryPrefix.long2String(r.length(), "", 1));
     }
     return sf;
   }
@@ -1089,7 +1091,8 @@ public class HStore implements Store {
    * @return Storefile we compacted into or null if we failed or opted out early.
    */
   @Override
-  public List<StoreFile> compact(CompactionContext compaction) throws IOException {
+  public List<StoreFile> compact(CompactionContext compaction,
+      CompactionThroughputController throughputController) throws IOException {
     assert compaction != null && compaction.hasSelection();
     CompactionRequest cr = compaction.getRequest();
     Collection<StoreFile> filesToCompact = cr.getFiles();
@@ -1104,13 +1107,13 @@ public class HStore implements Store {
     LOG.info("Starting compaction of " + filesToCompact.size() + " file(s) in "
         + this + " of " + this.getRegionInfo().getRegionNameAsString()
         + " into tmpdir=" + fs.getTempDir() + ", totalSize="
-        + StringUtils.humanReadableInt(cr.getSize()));
+        + TraditionalBinaryPrefix.long2String(cr.getSize(), "", 1));
 
     long compactionStartTime = EnvironmentEdgeManager.currentTimeMillis();
     List<StoreFile> sfs = null;
     try {
       // Commence the compaction.
-      List<Path> newFiles = compaction.compact();
+      List<Path> newFiles = compaction.compact(throughputController);
 
       // TODO: get rid of this!
       if (!this.conf.getBoolean("hbase.hstore.compaction.complete", true)) {
@@ -1814,7 +1817,6 @@ public class HStore implements Store {
   }
 
   @Override
-  // TODO: why is there this and also getNumberOfStorefiles?! Remove one.
   public int getStorefilesCount() {
     return this.storeEngine.getStoreFileManager().getStorefileCount();
   }
@@ -2104,5 +2106,10 @@ public class HStore implements Store {
   @Override
   public long getMajorCompactedCellsSize() {
     return majorCompactedCellsSize;
+  }
+
+  @Override
+  public double getCompactionPressure() {
+    return storeEngine.getStoreFileManager().getCompactionPressure();
   }
 }

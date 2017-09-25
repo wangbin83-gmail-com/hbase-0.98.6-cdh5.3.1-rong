@@ -31,6 +31,8 @@ import org.apache.hadoop.hbase.quotas.RegionServerQuotaManager;
 import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.protobuf.Service;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -131,7 +133,16 @@ public interface RegionServerServices
   public ServerNonceManager getNonceManager();
 
   /**
+   * @return the max compaction pressure of all stores on this regionserver. The value should be
+   *         greater than or equal to 0.0, and any value greater than 1.0 means we enter the
+   *         emergency state that some stores have too many store files.
+   * @see org.apache.hadoop.hbase.regionserver.Store#getCompactionPressure()
+   */
+  double getCompactionPressure();
+
+  /**
    * @return all the online tables in this RS
    */
   Set<TableName> getOnlineTables();
+
 }

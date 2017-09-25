@@ -64,6 +64,7 @@ import org.apache.hadoop.hbase.monitoring.MonitoredTask;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
+import org.apache.hadoop.hbase.regionserver.compactions.NoLimitCompactionThroughputController;
 import org.apache.hadoop.hbase.regionserver.wal.HLog;
 import org.apache.hadoop.hbase.regionserver.wal.HLogFactory;
 import org.apache.hadoop.hbase.security.User;
@@ -312,7 +313,7 @@ public class TestStore {
       }
       // Verify that the expired store file is compacted to an empty store file.
       // Default compaction policy creates just one and only one compacted file.
-      StoreFile compactedFile = this.store.compact(compaction).get(0);
+      StoreFile compactedFile = this.store.compact(compaction, NoLimitCompactionThroughputController.INSTANCE).get(0);
       // It is an empty store file.
       Assert.assertEquals(0, compactedFile.getReader().getEntries());
 
@@ -342,7 +343,7 @@ public class TestStore {
     Assert.assertEquals(lowestTimeStampFromManager,lowestTimeStampFromFS);
 
     // after compact; check the lowest time stamp
-    store.compact(store.requestCompaction());
+    store.compact(store.requestCompaction(), NoLimitCompactionThroughputController.INSTANCE);
     lowestTimeStampFromManager = StoreUtils.getLowestTimestamp(store.getStorefiles());
     lowestTimeStampFromFS = getLowestTimeStampFromFS(fs, store.getStorefiles());
     Assert.assertEquals(lowestTimeStampFromManager, lowestTimeStampFromFS);

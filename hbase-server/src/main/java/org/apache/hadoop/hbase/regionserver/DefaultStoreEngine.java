@@ -29,6 +29,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.regionserver.compactions.ExploringCompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.RatioBasedCompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.DefaultCompactor;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
 
 /**
@@ -62,10 +63,10 @@ public class DefaultStoreEngine extends StoreEngine<
   @Override
   protected void createComponents(
       Configuration conf, Store store, KVComparator kvComparator) throws IOException {
-    storeFileManager = new DefaultStoreFileManager(kvComparator, conf);
     createCompactor(conf, store);
     createCompactionPolicy(conf, store);
     createStoreFlusher(conf, store);
+    storeFileManager = new DefaultStoreFileManager(kvComparator, conf, compactionPolicy.getConf());
   }
 
   protected void createCompactor(Configuration conf, Store store) throws IOException {
@@ -117,8 +118,9 @@ public class DefaultStoreEngine extends StoreEngine<
     }
 
     @Override
-    public List<Path> compact() throws IOException {
-      return compactor.compact(request);
+    public List<Path> compact(CompactionThroughputController throughputController)
+        throws IOException {
+      return compactor.compact(request, throughputController);
     }
 
     @Override

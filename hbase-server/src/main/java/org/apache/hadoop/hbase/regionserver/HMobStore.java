@@ -55,6 +55,7 @@ import org.apache.hadoop.hbase.mob.MobZookeeper;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionContext;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.apache.zookeeper.KeeperException;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputController;
 
 /**
  * The store implementation to save MOBs (medium objects), it extends the HStore.
@@ -334,7 +335,8 @@ public class HMobStore extends HStore {
    * The major compaction is converted to a minor one when a sweeping is in progress.
    */
   @Override
-  public List<StoreFile> compact(CompactionContext compaction) throws IOException {
+  public List<StoreFile> compact(CompactionContext compaction,
+      CompactionThroughputController throughputController) throws IOException {
     // If it's major compaction, try to find whether there's a sweeper is running
     // If yes, change the major compaction to a minor one.
     if (compaction.getRequest().isMajor()) {
@@ -355,7 +357,7 @@ public class HMobStore extends HStore {
             e);
         // change the major compaction into a minor one
         compaction.getRequest().setIsMajor(false);
-        return super.compact(compaction);
+        return super.compact(compaction, throughputController);
       }
       boolean major = false;
       try {
@@ -381,13 +383,13 @@ public class HMobStore extends HStore {
         }
         try {
           if (major) {
-            return super.compact(compaction);
+            return super.compact(compaction, throughputController);
           } else {
             LOG.warn("Cannot obtain the lock or a sweep tool is running on this store["
                 + this + "], ready to perform the minor compaction instead");
             // change the major compaction into a minor one
             compaction.getRequest().setIsMajor(false);
-            return super.compact(compaction);
+            return super.compact(compaction, throughputController);
           }
         } finally {
           if (major) {
@@ -404,7 +406,7 @@ public class HMobStore extends HStore {
       }
     } else {
       // If it's not a major compaction, continue the compaction.
-      return super.compact(compaction);
+      return super.compact(compaction, throughputController);
     }
   }
 

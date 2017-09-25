@@ -95,11 +95,11 @@ public class PoolMap<K, V> implements Map<K, V> {
 
   /**
    * @deprecated Will be removed for Java 8, use {@link #removeValue} instead
-   */
   @Deprecated
   public boolean remove(K key, V value) {
     return removeValue(key, value);
   }
+   */
 
   public boolean removeValue(K key, V value) {
     Pool<V> pool = pools.get(key);
